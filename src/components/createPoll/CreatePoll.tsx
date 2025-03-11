@@ -1,12 +1,14 @@
 import { ChangeEvent, useState } from "react";
 import { Input } from "../Input";
 import { validatePoll } from "./ValidationCreatePollFrom";
+import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 
 const CreatePoll = () => {
   const [pollData, setPollData] = useState({
     title: "",
     pollType: "multiple_choice",
-    options: [{ id: 1, text: "", votes: 0 }],
+    options: [{ id: 1, text: "" }],
     settings: {
       allowMultipleSelection: { type: "false" }, // Default single choice
       requireParticipantNames: false,
@@ -17,6 +19,9 @@ const CreatePoll = () => {
   });
 
   const [errors, setErrors] = useState<Record<string, string> | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const navigate = useNavigate();
 
   const handleInputChange = (
     field: string,
@@ -47,7 +52,10 @@ const CreatePoll = () => {
       ...prevPollData,
       options: [
         ...prevPollData.options,
-        { id: prevPollData.options.length + 1, text: "", votes: 0 },
+        {
+          id: prevPollData.options.length + 1,
+          text: "",
+        },
       ],
     }));
 
@@ -56,7 +64,10 @@ const CreatePoll = () => {
         ...pollData,
         options: [
           ...pollData.options,
-          { id: pollData.options.length + 1, text: "", votes: 0 },
+          {
+            id: pollData.options.length + 1,
+            text: "",
+          },
         ],
       })
     );
@@ -89,14 +100,36 @@ const CreatePoll = () => {
     setErrors(validatePoll({ ...pollData, options: remainingOption }));
   };
 
-  const handleFormSubmit = () => {
+  const handleFormSubmit = async () => {
     const validationErrors = validatePoll(pollData);
     setErrors(validationErrors);
 
     if (Object.keys(validationErrors).length === 0) {
-      console.log("Poll Data Submitted:", pollData);
+      setLoading(true);
+      const res = await fetch(
+        `https://vanishvote-server-iota.vercel.app/api/v1/polls/create-poll`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(pollData),
+        }
+      );
+      const data = await res.json();
+      if (data?.success) {
+        toast.success(data?.message || "Sucessfull");
+        navigate(`/vote/${data?.data?._id}`);
+      }
+      setLoading(false);
+      setPollData({
+        ...pollData,
+        title: "",
+        options: [{ id: 1, text: "" }],
+      });
     }
   };
+
   return (
     <div className="space-y-8">
       <div className="text-center">
@@ -187,6 +220,7 @@ const CreatePoll = () => {
             </div>
           </div>
           <button
+            disabled={loading}
             onClick={handleFormSubmit}
             className={`border px-3 py-1.5 rounded-md bg-pramary text-white hover:bg-opacity-90`}
           >

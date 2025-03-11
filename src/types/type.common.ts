@@ -1,7 +1,7 @@
 export type TOption = {
   id: number;
   text: string;
-  votes: number;
+  votes?: { ip?: string; comment?: string };
 };
 export type TPollData = {
   title: string;
